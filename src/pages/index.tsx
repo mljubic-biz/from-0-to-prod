@@ -1,7 +1,11 @@
-/* eslint-disable @next/next/no-img-element */
-import { SignInButton, SignOutButton, useUser } from "@clerk/nextjs";
+import { SignInButton, useUser } from "@clerk/nextjs";
 import Head from "next/head";
 import { type RouterOutputs, api } from "~/utils/api";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import Image from "next/image";
+
+dayjs.extend(relativeTime);
 
 const CreatePostWizard = () => {
   const { user } = useUser();
@@ -12,10 +16,12 @@ const CreatePostWizard = () => {
 
   return (
     <div className="flex w-full gap-3">
-      <img
+      <Image
         src={user.imageUrl}
         alt="Profile image"
         className="h-12 w-12 rounded-full"
+        width={56}
+        height={56}
       />
       <input
         placeholder="Type some emojis"
@@ -27,20 +33,23 @@ const CreatePostWizard = () => {
 
 type PostWithUser = RouterOutputs["post"]["getAll"][number];
 const PostView = ({ post }: { post: PostWithUser }) => {
-  const { content, id, author } = post;
+  const { content, author, createdAt } = post;
 
   return (
     <div className="flex  gap-4 border-b border-slate-400 p-4">
-      <img
+      <Image
         src={author.profilePicture}
         alt="Profile image"
         className="h-12 w-12 rounded-full"
+        width={56}
+        height={56}
       />
       <div className="flex flex-col">
-        <div className="flex font-bold text-slate-300">
+        <div className="flex gap-1 font-bold text-slate-300">
           <span>{`@${
             author.username ?? `${author.firstName} ${author.lastName}`
           }`}</span>
+          <span> · {dayjs(createdAt).fromNow()}</span>
         </div>
         <span>{content}</span>
       </div>
