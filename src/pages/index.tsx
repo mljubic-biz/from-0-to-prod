@@ -4,8 +4,10 @@ import { type RouterOutputs, api } from "~/utils/api";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import Image from "next/image";
-import { LoadingPage } from "~/components/loading";
+import { LoadingPage, LoadingSpinner } from "~/components/loading";
 import { useState } from "react";
+import toast from "react-hot-toast";
+import Link from "next/link";
 
 dayjs.extend(relativeTime);
 
@@ -19,6 +21,14 @@ const CreatePostWizard = () => {
   const { mutate, isLoading: isPosting } = api.post.crate.useMutation({
     onSuccess: async () => {
       await ctx.post.getAll.invalidate();
+    },
+    onError: (event) => {
+      const errorMessage = event.data?.zodError?.fieldErrors.content;
+      if (errorMessage?.[0]) {
+        toast.error(errorMessage[0]);
+      } else {
+        toast.error("Failed to post!, Please try again later.");
+      }
     },
   });
 
@@ -42,10 +52,25 @@ const CreatePostWizard = () => {
         value={input}
         onChange={(e) => setInput(e.target.value)}
         disabled={isPosting}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            if (input !== "") {
+              mutate({ content: input });
+            }
+          }
+        }}
       />
-      <button disabled={isPosting} onClick={() => mutate({ content: input })}>
-        Post
-      </button>
+      {input !== "" && !isPosting && (
+        <button disabled={isPosting} onClick={() => mutate({ content: input })}>
+          Post
+        </button>
+      )}
+      {isPosting && (
+        <div className="flex items-center justify-center">
+          <LoadingSpinner size={16} />
+        </div>
+      )}
     </div>
   );
 };
@@ -65,10 +90,14 @@ const PostView = ({ post }: { post: PostWithUser }) => {
       />
       <div className="flex flex-col">
         <div className="flex gap-1 font-bold text-slate-300">
-          <span>{`@${
-            author.username ?? `${author.firstName} ${author.lastName}`
-          }`}</span>
-          <span> · {dayjs(createdAt).fromNow()}</span>
+          <Link href={`/@{author.username}`}>
+            <span>{`@${
+              author.username ?? `${author.firstName} ${author.lastName}`
+            }`}</span>
+          </Link>
+          <Link href={`/post/${post.id}`}>
+            <span> · {dayjs(createdAt).fromNow()}</span>
+          </Link>
         </div>
         <span className="text-xl">{content}</span>
       </div>
