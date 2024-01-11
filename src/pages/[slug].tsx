@@ -1,12 +1,33 @@
 import Head from "next/head";
 import { api } from "~/utils/api";
-import { createServerSideHelpers } from "@trpc/react-query/server";
-import superjson from "superjson";
-import { db } from "~/server/db";
-import { appRouter } from "~/server/api/root";
 import { type GetStaticProps, type NextPage } from "next";
 import { PageLayout } from "~/components/layout";
 import Image from "next/image";
+import { LoadingPage } from "~/components/loading";
+import PostView from "~/components/postview";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import ssgHelper from "~/server/helpers/ssgHelper";
+
+dayjs.extend(relativeTime);
+
+const ProfileFeed = (props: { userId: string }) => {
+  const { data, isLoading } = api.post.getByUserId.useQuery({
+    userId: props.userId,
+  });
+
+  if (isLoading) return <LoadingPage />;
+
+  if (!data?.length) return <div>User has not posted</div>;
+
+  return (
+    <div className="flex flex-col">
+      {data.map((post) => (
+        <PostView post={post} key={post.id} />
+      ))}
+    </div>
+  );
+};
 
 const ProfilePage: NextPage<{ emailAddress: string }> = ({ emailAddress }) => {
   const { data, isLoading } = api.profile.getUserByEmailAddress.useQuery({
@@ -16,8 +37,6 @@ const ProfilePage: NextPage<{ emailAddress: string }> = ({ emailAddress }) => {
   if (isLoading) return <div>Loading...</div>;
 
   if (!data) return <div>404</div>;
-
-  console.log(data);
 
   return (
     <>
@@ -34,9 +53,10 @@ const ProfilePage: NextPage<{ emailAddress: string }> = ({ emailAddress }) => {
             className="absolute bottom-0 left-0 -mb-[48px] ml-4 rounded-full border-2 border-black"
           />
         </div>
-        <div className="border-b border-slate-400 p-6">
+        <div className="border-b border-slate-400">
           <div className="h-[48px]" />
-          <div className="text-2xl font-bold">{emailAddress}</div>
+          <div className="p-4 text-2xl font-bold">{emailAddress}</div>
+          <ProfileFeed userId={data.id} />
         </div>
       </PageLayout>
     </>
@@ -44,11 +64,7 @@ const ProfilePage: NextPage<{ emailAddress: string }> = ({ emailAddress }) => {
 };
 
 export const getStaticProps: GetStaticProps = async (context) => {
-  const ssg = createServerSideHelpers({
-    router: appRouter,
-    ctx: { db, userId: null },
-    transformer: superjson, // optional - adds superjson serialization
-  });
+  const ssg = ssgHelper();
 
   const slug = context.params?.slug;
 
@@ -56,9 +72,7 @@ export const getStaticProps: GetStaticProps = async (context) => {
 
   const emailAddress = slug.replace("@", "");
 
-  const user = await ssg.profile.getUserByEmailAddress.prefetch({
-    emailAddress,
-  });
+  await ssg.profile.getUserByEmailAddress.prefetch({ emailAddress });
 
   return {
     props: {

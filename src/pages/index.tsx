@@ -1,13 +1,13 @@
 import { SignInButton, useUser, SignOutButton } from "@clerk/nextjs";
-import { type RouterOutputs, api } from "~/utils/api";
+import { api } from "~/utils/api";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import Image from "next/image";
 import { LoadingPage, LoadingSpinner } from "~/components/loading";
 import { useState } from "react";
 import toast from "react-hot-toast";
-import Link from "next/link";
 import { PageLayout } from "~/components/layout";
+import PostView from "~/components/postview";
 
 dayjs.extend(relativeTime);
 
@@ -72,34 +72,6 @@ const CreatePostWizard = () => {
         </div>
       )}
       <SignOutButton />
-    </div>
-  );
-};
-
-type PostWithUser = RouterOutputs["post"]["getAll"][number];
-const PostView = ({ post }: { post: PostWithUser }) => {
-  const { content, author, createdAt } = post;
-
-  return (
-    <div className="flex  gap-4 border-b border-slate-400 p-4">
-      <Image
-        src={author.profilePicture}
-        alt="Profile image"
-        className="h-12 w-12 rounded-full"
-        width={56}
-        height={56}
-      />
-      <div className="flex flex-col">
-        <div className="flex gap-1 font-bold text-slate-300">
-          <Link href={`/@${author.emailAddress}`}>
-            <span>{`@${author.emailAddress}`}</span>
-          </Link>
-          <Link href={`/post/${post.id}`}>
-            <span> · {dayjs(createdAt).fromNow()}</span>
-          </Link>
-        </div>
-        <span className="text-xl">{content}</span>
-      </div>
     </div>
   );
 };
